@@ -1264,6 +1264,10 @@ int DCP_FW_NAME(iomfb_modeset)(struct apple_dcp *dcp,
 	return 0;
 }
 
+static u64 convert_ns_to_mach_time(u64 time) {
+	return time * 100 / 4167;
+}
+
 void DCP_FW_NAME(iomfb_flush)(struct apple_dcp *dcp, struct drm_crtc *crtc, struct drm_atomic_state *state)
 {
 	struct drm_plane *plane;
@@ -1406,6 +1410,15 @@ void DCP_FW_NAME(iomfb_flush)(struct apple_dcp *dcp, struct drm_crtc *crtc, stru
 		req->swap.swap_enabled |= IOMFB_SET_BACKGROUND;
 		req->swap.bg_color = 0xFF000000;
 		req->clear = 1;
+	}
+
+	if (has_surface) {
+		u64 now = ktime_get_ns();
+
+		/* set timestamps to reach 120 fps */
+		req->swap.ts1 = convert_ns_to_mach_time(now + 16660000);
+		req->swap.ts2 = convert_ns_to_mach_time(now - 40000000);
+		req->swap.ts3 = convert_ns_to_mach_time(now);
 	}
 
 	/* These fields should be set together */
