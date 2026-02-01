@@ -7,6 +7,9 @@
 
 #include "iomfb_internal.h"
 
+#include "iomfb_plane.h"
+#include "linux/printk.h"
+#include "vdso/align.h"
 #include <drm/drm_atomic.h>
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_fourcc.h>
@@ -257,7 +260,11 @@ static void apple_plane_atomic_update(struct drm_plane *plane,
 		.pel_h = 1,
 		.has_comp = 1,
 		.has_planes = 1,
+		.has_compr_info = 1,
 	};
+
+	BUILD_BUG_ON(sizeof(struct dcp_plane_info) != 0x50);
+	BUILD_BUG_ON(sizeof(struct dcp_compression_info) != 0x34);
 
 	/* Populate plane information for planar formats */
 	struct dcp_surface *surf = &new_state->surf;
@@ -278,6 +285,35 @@ static void apple_plane_atomic_update(struct drm_plane *plane,
 			.tile_w = bw,
 			.tile_h = bh,
 		};
+
+		pr_info("dcp: plane %d modifiers: %llx", i, fb->modifier);
+
+		if (fb->modifier == DRM_FORMAT_MOD_APPLE_INTERCHANGE_COMPRESSED) {
+			// pr_info("dcp: got framebuffer with XCHG modifier, enable compression");
+
+			u32 tw = ALIGN(width, 16) / 16;
+			u32 th = ALIGN(height, 16) / 16;
+			u32 tsize_B = 16 * 16 * 4;
+
+			surf->planes[i].tile_w = 16;
+			surf->planes[i].tile_h = 16;
+			surf->planes[i].stride =  tw * tsize_B;
+			surf->planes[i].tile_size = tsize_B;
+			surf->planes[i].address_format = 5; // interchange tiles
+
+			surf->compression_info[i] = (struct dcp_compression_info) {
+				.tile_w = 16,
+				.tile_h = 16,
+				.data_offset = 0,
+				.meta_offset = ALIGN(tw * th * tsize_B, 128),
+				.tile_meta_bytes = 8,
+				.tiles_w = tw,
+				.tiles_h = th,
+				.tile_bytes =  tsize_B,
+				.row_stride = tw * tsize_B,
+				.compresson_type = 3, // interchange compression
+			};
+		}
 
 		if (i > 0)
 			surf->buf_size += surf->planes[i].size;
@@ -395,6 +431,7 @@ static const u32 dcp_overlay_formats[] = {
 };
 
 u64 apple_format_modifiers[] = {
+	DRM_FORMAT_MOD_APPLE_INTERCHANGE_COMPRESSED,
 	DRM_FORMAT_MOD_LINEAR,
 	DRM_FORMAT_MOD_INVALID
 };
