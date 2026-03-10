@@ -133,12 +133,14 @@ static int apple_plane_atomic_check(struct drm_plane *plane,
 		return -EINVAL;
 	}
 
-	/*
-	 * Pitches have to be 64-byte aligned.
-	 */
-	for (u32 i = 0; i < new_plane_state->fb->format->num_planes; i++)
-		if (new_plane_state->fb->pitches[i] & 63)
-			return -EINVAL;
+	if (new_plane_state->fb->modifier != DRM_FORMAT_MOD_APPLE_INTERCHANGE_COMPRESSED) {
+		/*
+		 * Pitches have to be 64-byte aligned for non-tiled modifiers.
+		 */
+		for (u32 i = 0; i < new_plane_state->fb->format->num_planes; i++)
+			if (new_plane_state->fb->pitches[i] & 63)
+				return -EINVAL;
+	}
 
 	/*
 	 * FIXME: dcp can currently only use multi-planar buffers using the same
