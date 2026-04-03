@@ -96,11 +96,15 @@ struct dcp_display_mode {
 	struct dcp_color_mode sdr;
 	struct dcp_color_mode best;
 	bool vrr;
+	s64 min_vrr;
+	s64 max_vrr;
 };
 
 struct dimension {
 	s64 total, front_porch, sync_width, active;
 	s64 precise_sync_rate;
+	s64 min_var_rate;
+	s64 max_var_rate;
 };
 
 int parse(const void *blob, size_t size, struct dcp_parse_ctx *ctx);

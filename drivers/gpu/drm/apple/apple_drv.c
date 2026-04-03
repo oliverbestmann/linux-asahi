@@ -370,6 +370,8 @@ static int apple_probe_per_dcp(struct device *dev,
 			drm_connector_attach_colorspace_property(&connector->base);
 
 		drm_connector_attach_hdr_output_metadata_property(&connector->base);
+
+		drm_connector_attach_vrr_capable_property(&connector->base);
 	}
 
 	connector->base.polled = DRM_CONNECTOR_POLL_HPD;

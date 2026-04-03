@@ -470,6 +470,10 @@ static int parse_mode(struct dcp_parse_ctx *handle,
 			ret = parse_dimension(it.handle, &horiz);
 		else if (!strcmp(key, "VerticalAttributes"))
 			ret = parse_dimension(it.handle, &vert);
+		else if (!strcmp(key, "MinimumVariableRefreshRate"))
+			ret = parse_int(it.handle, &out->min_vrr);
+		else if (!strcmp(key, "MaximumVariableRefreshRate"))
+			ret = parse_int(it.handle, &out->max_vrr);
 		else if (!strcmp(key, "ColorModes"))
 			ret = parse_color_modes(it.handle, out);
 		else if (!strcmp(key, "ID"))
@@ -534,6 +538,9 @@ static int parse_mode(struct dcp_parse_ctx *handle,
 	if (vert.precise_sync_rate >> 16 == 120 &&
 	    ((horiz.active == 3024 && vert.active == 1964) ||
 	     (horiz.active == 3456 && vert.active == 2234)))
+		out->vrr = true;
+
+	if ((out->min_vrr >> 16) && (out->max_vrr >> 16))
 		out->vrr = true;
 
 	vert.active -= notch_height;
